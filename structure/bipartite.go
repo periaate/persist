@@ -22,10 +22,11 @@ func (s Side) String() string {
 const (
 	Right Side = iota + 1
 	Left
+	BadSide
 )
 
-func Make[K comparable, V any]() Bipartite[K, V] {
-	bg := Bipartite[K, V]{
+func Make[K comparable]() Bipartite[K] {
+	bg := Bipartite[K]{
 		R: make(map[K]*Graph[rType, lType, K], 0),
 		L: make(map[K]*Graph[lType, rType, K], 0),
 	}
@@ -33,13 +34,27 @@ func Make[K comparable, V any]() Bipartite[K, V] {
 	return bg
 }
 
-type Bipartite[K comparable, V any] struct {
+func (bg *Bipartite[K]) Find(s Side, k K) error {
+	switch s {
+	case Right:
+		if _, ok := bg.R[k]; ok {
+			return nil
+		}
+	case Left:
+		if _, ok := bg.L[k]; ok {
+			return nil
+		}
+	}
+	return fmt.Errorf("key %v not found on %s", k, s)
+}
+
+type Bipartite[K comparable] struct {
 	// The inverse ordering of the types enforces the bipartite structure.
 	R map[K]*Graph[rType, lType, K]
 	L map[K]*Graph[lType, rType, K]
 }
 
-func (bg *Bipartite[K, V]) Get(s Side, k K) (map[K]any, error) {
+func (bg *Bipartite[K]) Get(s Side, k K) (map[K]any, error) {
 	switch s {
 	case Right:
 		if it, ok := bg.R[k]; ok {
@@ -53,7 +68,7 @@ func (bg *Bipartite[K, V]) Get(s Side, k K) (map[K]any, error) {
 	return nil, fmt.Errorf("not found %v", k)
 }
 
-func (bg *Bipartite[K, V]) Add(s Side, k K) error {
+func (bg *Bipartite[K]) Add(s Side, k K) error {
 	switch s {
 	case Right:
 		if _, ok := bg.R[k]; ok {
@@ -79,7 +94,7 @@ func (bg *Bipartite[K, V]) Add(s Side, k K) error {
 	return nil
 }
 
-func (bg *Bipartite[K, V]) Edge(rName, lName K) error {
+func (bg *Bipartite[K]) Edge(rName, lName K) error {
 	var rVert *Graph[rType, lType, K]
 	var lVert *Graph[lType, rType, K]
 	var ok bool

@@ -7,14 +7,14 @@ import (
 )
 
 func TestMake(t *testing.T) {
-	bg := Make[Side, string]()
+	bg := Make[string]()
 	if len(bg.R) != 0 || len(bg.L) != 0 {
 		t.Errorf("Failed to create an empty Bipartite graph")
 	}
 }
 
 func TestAddVertices(t *testing.T) {
-	bg := Make[Side, string]()
+	bg := Make[int]()
 	bg.Add(Right, 1)
 	bg.Add(Left, 2)
 
@@ -28,7 +28,7 @@ func TestAddVertices(t *testing.T) {
 }
 
 func TestAddEdges(t *testing.T) {
-	bg := Make[Side, string]()
+	bg := Make[int]()
 	bg.Add(Right, 1)
 	bg.Add(Left, 2)
 	bg.Edge(1, 2)
@@ -44,7 +44,7 @@ func TestAddEdges(t *testing.T) {
 
 func TestGet(t *testing.T) {
 
-	bg := Make[string, string]()
+	bg := Make[string]()
 	bg.Add(Right, "Hello")
 	bg.Add(Left, "World")
 	bg.Edge("Hello", "World")
