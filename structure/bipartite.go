@@ -26,8 +26,8 @@ const (
 
 func Make[K comparable, V any]() Bipartite[K, V] {
 	bg := Bipartite[K, V]{
-		R: make(map[K]*Graph[rType, lType, K, V], 0),
-		L: make(map[K]*Graph[lType, rType, K, V], 0),
+		R: make(map[K]*Graph[rType, lType, K], 0),
+		L: make(map[K]*Graph[lType, rType, K], 0),
 	}
 
 	return bg
@@ -35,38 +35,33 @@ func Make[K comparable, V any]() Bipartite[K, V] {
 
 type Bipartite[K comparable, V any] struct {
 	// The inverse ordering of the types enforces the bipartite structure.
-	R map[K]*Graph[rType, lType, K, V]
-	L map[K]*Graph[lType, rType, K, V]
+	R map[K]*Graph[rType, lType, K]
+	L map[K]*Graph[lType, rType, K]
 }
 
-type Graph[A, B any, K comparable, V any] struct {
-	Targets map[K]*Graph[B, A, K, V]
-	Values  map[K]V
-	Name    K
-	Side    Side
-}
-
-func (g Graph[A, B, K, V]) String() string {
-	return fmt.Sprintf("Vertex %v in %s", g.Name, g.Side)
-}
-
-func (g *Graph[A, B, K, V]) Add(k K, target *Graph[B, A, K, V]) error {
-	if _, ok := g.Targets[k]; ok {
-		return fmt.Errorf("key with name %v already exists in right %s", k, g)
+func (bg *Bipartite[K, V]) Get(s Side, k K) (map[K]any, error) {
+	switch s {
+	case Right:
+		if it, ok := bg.R[k]; ok {
+			return it.Values, nil
+		}
+	case Left:
+		if it, ok := bg.L[k]; ok {
+			return it.Values, nil
+		}
 	}
-	g.Targets[k] = target
-	return nil
+	return nil, fmt.Errorf("not found %v", k)
 }
 
-func (bg *Bipartite[K, V]) Add(s Side, k K, v V) error {
+func (bg *Bipartite[K, V]) Add(s Side, k K) error {
 	switch s {
 	case Right:
 		if _, ok := bg.R[k]; ok {
 			return fmt.Errorf("vertex with name %v already exists in right", k)
 		}
-		bg.R[k] = &Graph[rType, lType, K, V]{
-			Targets: map[K]*Graph[lType, rType, K, V]{},
-			Values:  make(map[K]V),
+		bg.R[k] = &Graph[rType, lType, K]{
+			Targets: map[K]*Graph[lType, rType, K]{},
+			Values:  make(map[K]any),
 			Name:    k,
 			Side:    Right,
 		}
@@ -74,9 +69,9 @@ func (bg *Bipartite[K, V]) Add(s Side, k K, v V) error {
 		if _, ok := bg.L[k]; ok {
 			return fmt.Errorf("vertex with name %v already exists in left", k)
 		}
-		bg.L[k] = &Graph[lType, rType, K, V]{
-			Targets: map[K]*Graph[rType, lType, K, V]{},
-			Values:  make(map[K]V),
+		bg.L[k] = &Graph[lType, rType, K]{
+			Targets: map[K]*Graph[rType, lType, K]{},
+			Values:  make(map[K]any),
 			Name:    k,
 			Side:    Left,
 		}
@@ -85,8 +80,8 @@ func (bg *Bipartite[K, V]) Add(s Side, k K, v V) error {
 }
 
 func (bg *Bipartite[K, V]) Edge(rName, lName K) error {
-	var rVert *Graph[rType, lType, K, V]
-	var lVert *Graph[lType, rType, K, V]
+	var rVert *Graph[rType, lType, K]
+	var lVert *Graph[lType, rType, K]
 	var ok bool
 	if rVert, ok = bg.R[rName]; !ok {
 		return fmt.Errorf("vertex with name %v doesn't exist in in %s", rName, Right)
@@ -103,5 +98,25 @@ func (bg *Bipartite[K, V]) Edge(rName, lName K) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+type Graph[A, B any, K comparable] struct {
+	Targets map[K]*Graph[B, A, K]
+	Values  map[K]any
+	Name    K
+	Side    Side
+}
+
+func (g Graph[A, B, K]) String() string {
+	return fmt.Sprintf("Vertex %v in %s", g.Name, g.Side)
+}
+
+func (g *Graph[A, B, K]) Add(k K, target *Graph[B, A, K]) error {
+	if _, ok := g.Targets[k]; ok {
+		return fmt.Errorf("key with name %v already exists in right %s", k, g)
+	}
+	g.Targets[k] = target
+	g.Values[k] = struct{}{}
 	return nil
 }

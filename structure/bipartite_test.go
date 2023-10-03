@@ -1,6 +1,7 @@
 package structure_test
 
 import (
+	"fmt"
 	. "partdb/structure"
 	"testing"
 )
@@ -14,8 +15,8 @@ func TestMake(t *testing.T) {
 
 func TestAddVertices(t *testing.T) {
 	bg := Make[Side, string]()
-	bg.Add(Right, 1, "Right")
-	bg.Add(Left, 2, "Left")
+	bg.Add(Right, 1)
+	bg.Add(Left, 2)
 
 	if _, ok := bg.R[1]; !ok {
 		t.Errorf("Failed to add vertex to the right side")
@@ -28,8 +29,8 @@ func TestAddVertices(t *testing.T) {
 
 func TestAddEdges(t *testing.T) {
 	bg := Make[Side, string]()
-	bg.Add(Right, 1, "Right")
-	bg.Add(Left, 2, "Left")
+	bg.Add(Right, 1)
+	bg.Add(Left, 2)
 	bg.Edge(1, 2)
 
 	if _, ok := bg.R[1]; !ok || bg.R[1].Targets[2] != bg.L[2] {
@@ -39,4 +40,24 @@ func TestAddEdges(t *testing.T) {
 	if _, ok := bg.L[2]; !ok || bg.L[2].Targets[1] != bg.R[1] {
 		t.Errorf("Failed to add edge from left vertex to right vertex")
 	}
+}
+
+func TestGet(t *testing.T) {
+
+	bg := Make[string, string]()
+	bg.Add(Right, "Hello")
+	bg.Add(Left, "World")
+	bg.Edge("Hello", "World")
+
+	r, err := bg.Get(Right, "Hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	l, err := bg.Get(Left, "World")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(r, l)
 }
