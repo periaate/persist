@@ -9,6 +9,10 @@ import (
 )
 
 func logger(next http.Handler) http.Handler {
+	// TODO: Add significantly better logging, including:
+	// - Arguments
+	// - Response status code and response values (or some simplification of them)
+	// - other?
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
