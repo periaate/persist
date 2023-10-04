@@ -48,7 +48,7 @@ func TestAddEdges(t *testing.T) {
 	bg := Make[string, string]()
 	bg.Add(Right, rKey, ",")
 	bg.Add(Left, lKey, "!")
-	bg.Edge(rKey, lKey)
+	bg.Edge(lKey, rKey)
 
 	if _, ok := bg.R[rKey]; !ok || bg.R[rKey].Targets[lKey] != bg.L[lKey] {
 		t.Errorf("Failed to add edge from right vertex to left vertex")

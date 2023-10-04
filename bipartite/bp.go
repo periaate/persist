@@ -99,7 +99,55 @@ func (bg *Bipartite[K, V]) Add(s string, k K, v V) error {
 	return fmt.Errorf("no such side")
 }
 
-func (bg *Bipartite[K, V]) Edge(rName, lName K) error {
+func (bg *Bipartite[K, V]) AddR(k K, v V) error {
+	if _, ok := bg.R[k]; ok {
+		return fmt.Errorf("vertex with name %v already exists in right", k)
+	}
+	bg.R[k] = &Part[K, V]{
+		Targets: map[K]*Part[K, V]{},
+		Value:   v,
+	}
+	return nil
+}
+
+func (bg *Bipartite[K, V]) AddL(k K, v V) error {
+	if _, ok := bg.L[k]; ok {
+		return fmt.Errorf("vertex with name %v already exists in right", k)
+	}
+	bg.L[k] = &Part[K, V]{
+		Targets: map[K]*Part[K, V]{},
+		Value:   v,
+	}
+	return nil
+}
+
+func (bg *Bipartite[K, V]) AddValueless(side string, keys []K) error {
+	if _, ok := rSide[side]; ok {
+		for _, key := range keys {
+			if _, ok := bg.R[key]; ok {
+				continue
+			}
+			bg.R[key] = &Part[K, V]{
+				Targets: map[K]*Part[K, V]{},
+			}
+		}
+		return nil
+	}
+	if _, ok := lSide[side]; ok {
+		for _, key := range keys {
+			if _, ok := bg.L[key]; ok {
+				continue
+			}
+			bg.L[key] = &Part[K, V]{
+				Targets: map[K]*Part[K, V]{},
+			}
+		}
+		return nil
+	}
+	return fmt.Errorf("no such side")
+}
+
+func (bg *Bipartite[K, V]) Edge(lName, rName K) error {
 	var rVert *Part[K, V]
 	var lVert *Part[K, V]
 	var ok bool
@@ -120,6 +168,30 @@ func (bg *Bipartite[K, V]) Edge(rName, lName K) error {
 	rVert.Targets[lName] = lVert
 	lVert.Targets[rName] = rVert
 	return nil
+}
+
+func (bg *Bipartite[K, V]) List(side string, k K) ([]K, error) {
+	if _, ok := rSide[side]; ok {
+		if part, ok := bg.R[k]; ok {
+			list := []K{}
+			for key := range part.Targets {
+				list = append(list, key)
+			}
+			return list, nil
+		}
+		return nil, ErrNotExist
+	}
+	if _, ok := lSide[side]; ok {
+		if part, ok := bg.L[k]; ok {
+			list := []K{}
+			for key := range part.Targets {
+				list = append(list, key)
+			}
+			return list, nil
+		}
+		return nil, ErrNotExist
+	}
+	return nil, ErrBadSide
 }
 
 type Part[K comparable, V any] struct {
