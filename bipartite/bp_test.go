@@ -1,6 +1,7 @@
 package bipartite_test
 
 import (
+	"fmt"
 	. "partdb/bipartite"
 	"testing"
 )
@@ -17,7 +18,7 @@ func TestMake(t *testing.T) {
 	}
 }
 
-func TestAddVertices(t *testing.T) {
+func TestAdd(t *testing.T) {
 	bg := Make[string, string]()
 	bg.Add(Right, "Hello", ",")
 	bg.Add(Left, "World", "!")
@@ -30,6 +31,33 @@ func TestAddVertices(t *testing.T) {
 	} else {
 		t.Errorf("failed to add vertex to the right side")
 	}
+
+	if v, ok := bg.L["World"]; ok {
+
+		if v.Value != "!" {
+			t.Errorf("left vertex has wrong value")
+		}
+
+	} else {
+		t.Errorf("failed to add vertex to the left side")
+	}
+}
+func TestAddR(t *testing.T) {
+	bg := Make[string, string]()
+	bg.AddR("Hello", ",")
+
+	if v, ok := bg.R["Hello"]; ok {
+		if v.Value != "," {
+			t.Errorf("right vertex has wrong value")
+		}
+
+	} else {
+		t.Errorf("failed to add vertex to the right side")
+	}
+}
+func TestAddL(t *testing.T) {
+	bg := Make[string, string]()
+	bg.AddL("World", "!")
 
 	if v, ok := bg.L["World"]; ok {
 
@@ -63,17 +91,44 @@ func TestGet(t *testing.T) {
 	rKey := "Hello"
 	lKey := "World"
 	bg := Make[string, string]()
-	bg.Add(Right, rKey, ",")
-	bg.Add(Left, lKey, "!")
+	bg.AddR(rKey, ",")
+	bg.AddL(lKey, "!")
 	bg.Edge(rKey, lKey)
 
-	_, err := bg.Get(Right, "Hello")
+	rNode, err := bg.Get(Right, "Hello")
 	if err != nil {
 		t.Fatal(err)
 	}
+	if rNode.Value != "," {
+		t.Fatal(fmt.Errorf("received unexpected value, wanted \",\", received: \"%s\"", rNode.Value))
+	}
 
-	_, err = bg.Get(Left, "World")
+	lNode, err := bg.Get(Left, "World")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if lNode.Value != "!" {
+		t.Fatal(fmt.Errorf("received unexpected value, wanted \"!\", received: \"%s\"", lNode.Value))
+	}
+}
+
+func TestList(t *testing.T) {
+	keyArr := []string{"one", "two", "three"}
+	bg := Make[string, string]()
+	bg.AddValueless(Left, keyArr)
+	bg.AddR("Hello", "World")
+
+	bg.Edge("one", "Hello")
+	bg.Edge("two", "Hello")
+	bg.Edge("three", "Hello")
+	keyList, err := bg.List(Right, "Hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, key := range keyList {
+		expect := keyArr[i]
+		if key != expect {
+			t.Fatal(fmt.Errorf("received unexpected value, wanted \"%s\", received: \"%s\"", expect, key))
+		}
 	}
 }
