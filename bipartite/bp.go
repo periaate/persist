@@ -29,20 +29,23 @@ var (
 	}
 )
 
+// Make constructs a generic KV bipartite graph.
 func Make[K comparable, V any]() Bipartite[K, V] {
 	bg := Bipartite[K, V]{
-		R: make(map[K]*Part[K, V], 0),
-		L: make(map[K]*Part[K, V], 0),
+		R: make(map[K]*Node[K, V], 0),
+		L: make(map[K]*Node[K, V], 0),
 	}
 
 	return bg
 }
 
+// Bipartite is a generic KV bipartite graph.
 type Bipartite[K comparable, V any] struct {
-	R map[K]*Part[K, V]
-	L map[K]*Part[K, V]
+	R map[K]*Node[K, V]
+	L map[K]*Node[K, V]
 }
 
+// Find looks for a key in a given side, returning an error if not found.
 func (bg *Bipartite[K, V]) Find(side string, k K) error {
 	if _, ok := rSide[side]; ok {
 		if _, ok := bg.R[k]; ok {
@@ -59,29 +62,31 @@ func (bg *Bipartite[K, V]) Find(side string, k K) error {
 	return ErrBadSide
 }
 
-func (bg *Bipartite[K, V]) Get(side string, k K) (map[K]*Part[K, V], error) {
+// Get looks for a key in the given side, returning it if found.
+func (bg *Bipartite[K, V]) Get(side string, k K) (*Node[K, V], error) {
 	if _, ok := rSide[side]; ok {
 		if part, ok := bg.R[k]; ok {
-			return part.Targets, nil
+			return part, nil
 		}
 		return nil, ErrNotExist
 	}
 	if _, ok := lSide[side]; ok {
 		if part, ok := bg.L[k]; ok {
-			return part.Targets, nil
+			return part, nil
 		}
 		return nil, ErrNotExist
 	}
 	return nil, ErrBadSide
 }
 
+// Add adds a key value pair to the given side.
 func (bg *Bipartite[K, V]) Add(s string, k K, v V) error {
 	if _, ok := rSide[s]; ok {
 		if _, ok := bg.R[k]; ok {
 			return fmt.Errorf("vertex with name %v already exists in right", k)
 		}
-		bg.R[k] = &Part[K, V]{
-			Targets: map[K]*Part[K, V]{},
+		bg.R[k] = &Node[K, V]{
+			Targets: map[K]*Node[K, V]{},
 			Value:   v,
 		}
 		return nil
@@ -90,8 +95,8 @@ func (bg *Bipartite[K, V]) Add(s string, k K, v V) error {
 		if _, ok := bg.L[k]; ok {
 			return fmt.Errorf("vertex with name %v already exists in left", k)
 		}
-		bg.L[k] = &Part[K, V]{
-			Targets: map[K]*Part[K, V]{},
+		bg.L[k] = &Node[K, V]{
+			Targets: map[K]*Node[K, V]{},
 			Value:   v,
 		}
 		return nil
@@ -99,36 +104,39 @@ func (bg *Bipartite[K, V]) Add(s string, k K, v V) error {
 	return fmt.Errorf("no such side")
 }
 
+// AddR adds makes a new key-value pair onto the right part.
 func (bg *Bipartite[K, V]) AddR(k K, v V) error {
 	if _, ok := bg.R[k]; ok {
 		return fmt.Errorf("vertex with name %v already exists in right", k)
 	}
-	bg.R[k] = &Part[K, V]{
-		Targets: map[K]*Part[K, V]{},
+	bg.R[k] = &Node[K, V]{
+		Targets: map[K]*Node[K, V]{},
 		Value:   v,
 	}
 	return nil
 }
 
+// AddL adds makes a new key-value pair onto the left part.
 func (bg *Bipartite[K, V]) AddL(k K, v V) error {
 	if _, ok := bg.L[k]; ok {
 		return fmt.Errorf("vertex with name %v already exists in right", k)
 	}
-	bg.L[k] = &Part[K, V]{
-		Targets: map[K]*Part[K, V]{},
+	bg.L[k] = &Node[K, V]{
+		Targets: map[K]*Node[K, V]{},
 		Value:   v,
 	}
 	return nil
 }
 
+// AddValueless adds an array of valueless keys to the given side.
 func (bg *Bipartite[K, V]) AddValueless(side string, keys []K) error {
 	if _, ok := rSide[side]; ok {
 		for _, key := range keys {
 			if _, ok := bg.R[key]; ok {
 				continue
 			}
-			bg.R[key] = &Part[K, V]{
-				Targets: map[K]*Part[K, V]{},
+			bg.R[key] = &Node[K, V]{
+				Targets: map[K]*Node[K, V]{},
 			}
 		}
 		return nil
@@ -138,8 +146,8 @@ func (bg *Bipartite[K, V]) AddValueless(side string, keys []K) error {
 			if _, ok := bg.L[key]; ok {
 				continue
 			}
-			bg.L[key] = &Part[K, V]{
-				Targets: map[K]*Part[K, V]{},
+			bg.L[key] = &Node[K, V]{
+				Targets: map[K]*Node[K, V]{},
 			}
 		}
 		return nil
@@ -147,9 +155,10 @@ func (bg *Bipartite[K, V]) AddValueless(side string, keys []K) error {
 	return fmt.Errorf("no such side")
 }
 
+// Edge adds edges from a left key to a right key and from a right key to a left key.
 func (bg *Bipartite[K, V]) Edge(lName, rName K) error {
-	var rVert *Part[K, V]
-	var lVert *Part[K, V]
+	var rVert *Node[K, V]
+	var lVert *Node[K, V]
 	var ok bool
 	if rVert, ok = bg.R[rName]; !ok {
 		return ErrNotExist
@@ -170,11 +179,12 @@ func (bg *Bipartite[K, V]) Edge(lName, rName K) error {
 	return nil
 }
 
+// List looks for a key in the given side, returning all of the keys of its edges.
 func (bg *Bipartite[K, V]) List(side string, k K) ([]K, error) {
 	if _, ok := rSide[side]; ok {
-		if part, ok := bg.R[k]; ok {
+		if node, ok := bg.R[k]; ok {
 			list := []K{}
-			for key := range part.Targets {
+			for key := range node.Targets {
 				list = append(list, key)
 			}
 			return list, nil
@@ -182,9 +192,9 @@ func (bg *Bipartite[K, V]) List(side string, k K) ([]K, error) {
 		return nil, ErrNotExist
 	}
 	if _, ok := lSide[side]; ok {
-		if part, ok := bg.L[k]; ok {
+		if node, ok := bg.L[k]; ok {
 			list := []K{}
-			for key := range part.Targets {
+			for key := range node.Targets {
 				list = append(list, key)
 			}
 			return list, nil
@@ -194,7 +204,9 @@ func (bg *Bipartite[K, V]) List(side string, k K) ([]K, error) {
 	return nil, ErrBadSide
 }
 
-type Part[K comparable, V any] struct {
-	Targets map[K]*Part[K, V]
+// Node is a node used in partite graphs.
+type Node[K comparable, V any] struct {
+	// Targets are the edges this node has to other nodes.
+	Targets map[K]*Node[K, V]
 	Value   V
 }
