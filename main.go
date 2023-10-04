@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	bp "partdb/bipartite"
 	"partdb/database"
-	"partdb/structure"
 )
 
 const (
@@ -29,67 +29,42 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	if os.Args[0] == "Edge" {
-		args := [2]string{os.Args[1], os.Args[1]}
-		var err error
-		client.Call(os.Args[0], args, err)
-		if err != nil {
-			log.Fatalln("something went wrong", err)
-		}
-		fmt.Println("Success!", os.Args[0], os.Args[1], os.Args[2])
-		return
-	}
-
-	side, err := Side(os.Args[1])
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	args := database.Args{
-		Side: side,
-		Key:  os.Args[2],
-	}
+	cmd := fmt.Sprintf("DB.%s", os.Args[0])
 
 	switch os.Args[0] {
-	case "list":
-		res := map[string]any{}
-		client.Call("list", args, res)
+	case "Get":
+		args := &database.TwoArg{
+			First:  os.Args[1],
+			Second: os.Args[2],
+		}
+		res := map[string]*bp.Part[string, string]{}
+		client.Call(cmd, args, res)
+		fmt.Println(res)
 		for _, s := range res {
 			fmt.Println(s)
 		}
-	default:
+	case "Add":
+		args := &database.AddArg{
+			First:  os.Args[1],
+			Second: os.Args[2],
+			Third:  os.Args[3],
+		}
 		var err error
-		client.Call(os.Args[0], args, err)
+		_ = client.Call(cmd, args, err)
 		if err != nil {
 			log.Fatalln("something went wrong", err)
 		}
-		fmt.Println("Success!", os.Args[0], os.Args[1], os.Args[2])
+		fmt.Println("Success!", args)
+	default:
+		args := &database.TwoArg{
+			First:  os.Args[1],
+			Second: os.Args[2],
+		}
+		var err error
+		_ = client.Call(cmd, args, err)
+		if err != nil {
+			log.Fatalln("something went wrong", err)
+		}
+		fmt.Println("Success!", cmd, args)
 	}
-}
-
-var r = map[string]any{
-	"r":     "",
-	"R":     "",
-	"right": "",
-	"Right": "",
-	"RIGHT": "",
-}
-
-var l = map[string]any{
-	"l":    "",
-	"L":    "",
-	"left": "",
-	"Left": "",
-	"LEFT": "",
-}
-
-func Side(s string) (structure.Side, error) {
-	if _, ok := r[s]; ok {
-		return structure.Right, nil
-	}
-	if _, ok := l[s]; ok {
-		return structure.Left, nil
-	}
-	return structure.BadSide, fmt.Errorf("no such side")
 }

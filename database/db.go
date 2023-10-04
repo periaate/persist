@@ -1,36 +1,53 @@
 package database
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"net/rpc"
-	"partdb/structure"
+	bp "partdb/bipartite"
 )
 
-type DB struct{ d structure.Bipartite[string] }
-
-type Args struct {
-	Side structure.Side
-	Key  string
+type TwoArg struct {
+	First  string
+	Second string
 }
 
-func (d *DB) List(args *Args, r *map[string]any) error {
-	res, err := d.d.Get(args.Side, args.Key)
-	if err != nil {
-		*r = nil
-		return err
-	}
-	*r = res
+type AddArg struct {
+	First  string
+	Second string
+	Third  string
+}
+
+type DB struct {
+	d bp.Bipartite[string, string]
+}
+
+func (d *DB) Get(args *TwoArg, ret *map[string]*bp.Part[string, string]) error {
+	fmt.Println("GETTING:", args.Second, "; FROM SIDE:", args.First)
+	res, err := d.d.Get(args.First, args.Second)
+	*ret = res
 	return err
 }
+func (d *DB) Add(args *AddArg, err *error) error {
+	fmt.Println("ADDING TO:", args.First, "; KEY:", args.Second, "; VALUE:", args.Third)
+	r := d.d.Add(args.First, args.Second, args.Third)
+	fmt.Println("success")
+	*err = r
+	return r
+}
 
-func (d *DB) Find(args *Args, err *error) error      { *err = d.d.Find(args.Side, args.Key); return nil }
-func (d *DB) Add(args *Args, err *error) error       { *err = d.d.Add(args.Side, args.Key); return nil }
-func (d *DB) Edge(args *[2]string, err *error) error { *err = d.d.Edge(args[0], args[1]); return nil }
+func (d *DB) Edge(args *TwoArg, err *error) error {
+	fmt.Println("ADDING EDGE BETWEEN RIGHT KEY:", args.First, " AND LEFT KEY:", args.Second)
+	r := d.d.Edge(args.First, args.Second)
+	fmt.Println("success")
+	*err = r
+	return r
+}
 
 func ServeRPC(prot string, addr string) {
-	db := new(DB)
+	db := &DB{d: bp.Make[string, string]()}
 	rpc.Register(db)
 	rpc.HandleHTTP()
 	l, err := net.Listen(prot, addr)
