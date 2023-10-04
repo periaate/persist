@@ -145,5 +145,3 @@ func TestList(t *testing.T) {
 		t.Errorf("expected len 3")
 	}
 }
-
-// Similarly, write tests for addLHandler, addValuelessHandler, edgeHandler, listHandler
