@@ -6,6 +6,33 @@ import (
 	"os"
 )
 
+// NewPersistentInstance returns a persistent instance.
+func NewPersistentInstance[K comparable, V any]() PersistentInstance[K, V] {
+	bp := NewBipartite[K, V]()
+	pbp := &persistentBp[K, V]{bp}
+	return pbp
+
+}
+
+type persistentBp[K comparable, V any] struct {
+	*Bipartite[K, V]
+}
+
+// Serializes the instance into a file at the path argument. Overwrites or creates file.
+func (p *persistentBp[K, V]) Serialize(path string) error {
+	return SerializeBipartite[K, V](p.Bipartite, path)
+}
+
+// Deserializes the instance from a file at the path argument.
+func (p *persistentBp[K, V]) Deserialize(path string) error {
+	bp, err := DeserializeBipartite[K, V](path)
+	if err != nil {
+		return err
+	}
+	p.Bipartite = bp
+	return nil
+}
+
 type flatPartite[K comparable, V any] struct {
 	Akeys      map[K]flatPartiteNode[K, V]
 	Bkeyvalues map[K]V
@@ -16,7 +43,7 @@ type flatPartiteNode[K comparable, V any] struct {
 	Bkeys  []K
 }
 
-func flatten[K comparable, V any](bp Bipartite[K, V]) *flatPartite[K, V] {
+func flatten[K comparable, V any](bp *Bipartite[K, V]) *flatPartite[K, V] {
 	slog.Info("flattening bipartite")
 	fp := &flatPartite[K, V]{
 		Akeys:      map[K]flatPartiteNode[K, V]{},
@@ -44,7 +71,7 @@ func flatten[K comparable, V any](bp Bipartite[K, V]) *flatPartite[K, V] {
 	return fp
 }
 
-func rebuild[K comparable, V any](fp flatPartite[K, V]) *Bipartite[K, V] {
+func rebuild[K comparable, V any](fp *flatPartite[K, V]) *Bipartite[K, V] {
 	slog.Info("rebuilding bipartite from gob binary")
 	bp := NewBipartite[K, V]()
 	for aKey, aNode := range fp.Akeys {
@@ -63,10 +90,10 @@ func rebuild[K comparable, V any](fp flatPartite[K, V]) *Bipartite[K, V] {
 	return bp
 }
 
-func serializeData[K comparable, V any](bp Bipartite[K, V], fileName string) error {
+func SerializeBipartite[K comparable, V any](bp *Bipartite[K, V], path string) error {
 	fp := flatten(bp)
 
-	file, err := os.Create(fileName)
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -80,9 +107,9 @@ func serializeData[K comparable, V any](bp Bipartite[K, V], fileName string) err
 	return nil
 }
 
-func deserializeData[K comparable, V any](fileName string) (*Bipartite[K, V], error) {
-	var data flatPartite[K, V]
-	file, err := os.Open(fileName)
+func DeserializeBipartite[K comparable, V any](path string) (*Bipartite[K, V], error) {
+	var data *flatPartite[K, V]
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}

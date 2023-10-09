@@ -19,3 +19,13 @@ type Instance[K comparable, V any] interface {
 	// ListPart takes a side and returns a map of all keys and their values on that side.
 	ListPart(bool) (map[K]V, error)
 }
+
+type PersistentInstance[K comparable, V any] interface {
+	Instance[K, V]
+
+	// Serializes the instance into a file at the path argument. Overwrites or creates file.
+	Serialize(path string) error
+
+	// Deserializes the instance from a file at the path argument.
+	Deserialize(path string) error
+}
