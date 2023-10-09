@@ -23,10 +23,10 @@ func generateKeys(aSize, bSize int) ([]string, []string) {
 	aKeys := make([]string, aSize)
 	bKeys := make([]string, bSize)
 	for i := range aKeys {
-		aKeys[i] = fmt.Sprint("A KEY", i)
+		aKeys[i] = fmt.Sprintf("[A_%v]", i)
 	}
 	for i := range bKeys {
-		bKeys[i] = fmt.Sprint("B KEY", i)
+		bKeys[i] = fmt.Sprintf("[B_%v]", i)
 	}
 	return aKeys, bKeys
 }

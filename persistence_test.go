@@ -5,37 +5,37 @@ import (
 	"testing"
 )
 
-func def() *Bipartite[string, string] {
-	aKeys, bKeys := generateKeys(3, 12)
+func TestSerialization(t *testing.T) {
+	basekeys, bKeys := generateKeys(3, 12)
 	bp := NewBipartite[string, string]()
-	for _, aKey := range aKeys {
+	for _, aKey := range basekeys {
 		bp.Index(A, aKey, bKeys...)
 	}
-	return bp
-}
 
-func TestSerialize(t *testing.T) {
-	bp := def()
 	err := serializeData[string, string](*bp, "testFile.gob")
 	if err != nil {
 		t.Error(err)
 	}
-}
 
-func TestDeserialize(t *testing.T) {
-	_, bKeys := generateKeys(3, 12)
-	bp, err := deserializeData[string, string]("testFile.gob")
+	defer func() {
+		err = os.Remove("testFile.gob")
+		if err != nil {
+			t.Fatal("unable to delete file", err)
+		}
+	}()
+
+	bpdeserialize, err := deserializeData[string, string]("testFile.gob")
 	if err != nil {
 		t.Error(err)
 	}
 
-	aKeys, err := bp.ListPart(A)
+	aKeys, err := bpdeserialize.ListPart(A)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for aKey := range aKeys {
-		targets, err := bp.ListKey(A, aKey)
+		targets, err := bpdeserialize.ListKey(A, aKey)
 		if err != nil {
 			t.Error(err)
 		}
@@ -46,8 +46,4 @@ func TestDeserialize(t *testing.T) {
 		}
 	}
 
-	err = os.Remove("testFile.gob")
-	if err != nil {
-		t.Fatal("unable to delete file", err)
-	}
 }

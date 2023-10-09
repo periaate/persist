@@ -2,6 +2,7 @@ package partdb
 
 import (
 	"encoding/gob"
+	"log/slog"
 	"os"
 )
 
@@ -16,6 +17,7 @@ type flatPartiteNode[K comparable, V any] struct {
 }
 
 func flatten[K comparable, V any](bp Bipartite[K, V]) *flatPartite[K, V] {
+	slog.Info("flattening bipartite")
 	fp := &flatPartite[K, V]{
 		Akeys:      map[K]flatPartiteNode[K, V]{},
 		Bkeyvalues: map[K]V{},
@@ -43,6 +45,7 @@ func flatten[K comparable, V any](bp Bipartite[K, V]) *flatPartite[K, V] {
 }
 
 func rebuild[K comparable, V any](fp flatPartite[K, V]) *Bipartite[K, V] {
+	slog.Info("rebuilding bipartite from gob binary")
 	bp := NewBipartite[K, V]()
 	for aKey, aNode := range fp.Akeys {
 		bp.Index(false, aKey, aNode.Bkeys...)
