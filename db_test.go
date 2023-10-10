@@ -48,6 +48,46 @@ func TestIndex(t *testing.T) {
 	}
 }
 
+func TestSet(t *testing.T) {
+	instance := NewInstance[string, int]()
+	key := "Hello"
+	val := 0
+
+	err := instance.SetKey(A, key, val)
+	if err != nil {
+		t.Fatal("fatal error encountered", err)
+	}
+
+	v, err := instance.GetKey(A, key)
+	if err != nil {
+		t.Fatal("fatal error encountered", err)
+	}
+
+	if *v != val {
+		if err != nil {
+			t.Errorf("received %v, expected %v", *v, val)
+		}
+	}
+
+	val += 1
+
+	err = instance.SetKey(A, key, val)
+	if err != nil {
+		t.Fatal("fatal error encountered", err)
+	}
+
+	v, err = instance.GetKey(A, key)
+	if err != nil {
+		t.Fatal("fatal error encountered", err)
+	}
+
+	if *v != val {
+		if err != nil {
+			t.Errorf("received %v, expected %v", *v, val)
+		}
+	}
+}
+
 func TestRemove(t *testing.T) {
 	aKeys, bKeys := generateKeys(1, 4)
 	instance := NewTestInstance(aKeys, bKeys)

@@ -116,6 +116,19 @@ func (bp Bipartite[K, V]) GetKey(part bool, key K) (*V, error) {
 	return &node.Value, nil
 }
 
+// GetKey takes a side and a key, returning the value of the key, or returning an error if key does not exist.
+func (bp Bipartite[K, V]) SetKey(part bool, key K, value V) error {
+	slog.Info("setting key with value",
+		"side", partName(part),
+		"key", key,
+		"value", value,
+	)
+
+	node := bp.getOrMake(part, key)
+	node.Value = value
+	return nil
+}
+
 // LiseKeys takes a side and a key, returning the index map of that key.
 func (bp Bipartite[K, V]) ListKey(part bool, key K) (map[K]V, error) {
 	slog.Info("listing key",

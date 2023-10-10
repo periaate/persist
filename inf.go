@@ -13,6 +13,9 @@ type Instance[K comparable, V any] interface {
 	// GetKey takes a side and a key, returning the value of the key, or returning an error if key does not exist.
 	GetKey(bool, K) (*V, error)
 
+	// SetKey takes a side, key, and a value, retrieving or making the key on the side and applying the value to it.
+	SetKey(bool, K, V) error
+
 	// LiseKeys takes a side and a key, returning the index map of that key.
 	ListKey(bool, K) (map[K]V, error)
 
