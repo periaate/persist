@@ -5,16 +5,6 @@ import (
 	"sync"
 )
 
-// type HMap[K comparable, V any] struct
-// func New[K comparable, V any](hfn func(K) uint64, maxSize uint64) (*HMap[K, V], error)
-// func (hm *HMap[K, V]) Get(key K) (el Element[K, V], ok bool)
-// func (hm *HMap[K, V]) Set(key K, value V)
-// func Serialize[K comparable, V any](hm *HMap[K, V], path string)
-// func Deserialize[K comparable, V any](path string) (*HMap[K, V], error)
-// func Replay[K comparable, V any](path string, hm *HMap[K, V]) error
-// func RebuildFromSnapshotAndWAL[K comparable, V any](snapshotPath string, walPath string) (*HMap[K, V], error)
-// func PeriodicCheck[K comparable, V any](hm *HMap[K, V], snapshot, wal string)
-
 type Element[K comparable, V any] struct {
 	HashedKey uint64
 	Key       K
