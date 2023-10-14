@@ -56,7 +56,6 @@ func (hm *HMap[K, V]) resize() {
 }
 
 func (hm *HMap[K, V]) Get(key K) (el Element[K, V], ok bool) {
-	fmt.Println(key)
 	i := hm.hashFn(key)
 	el = hm.Elements[i%hm.Max]
 	for el.HashedKey != 0 {
@@ -71,7 +70,22 @@ func (hm *HMap[K, V]) Get(key K) (el Element[K, V], ok bool) {
 	return Element[K, V]{}, false
 }
 
-func (hm *HMap[K, V]) Set(key K, value V) {
+func (hm *HMap[K, V]) get(key K) (el Element[K, V], ok bool, n uint64) {
+	i := hm.hashFn(key)
+	el = hm.Elements[i%hm.Max]
+	for el.HashedKey != 0 {
+		if el.Key == key {
+			return el, true, i
+		}
+
+		i++
+		el = hm.Elements[i%hm.Max]
+	}
+
+	return Element[K, V]{}, false, 0
+}
+
+func (hm *HMap[K, V]) Set(key K, value V) error {
 	hm.mutex.Lock()
 	defer hm.mutex.Unlock()
 
@@ -81,7 +95,7 @@ func (hm *HMap[K, V]) Set(key K, value V) {
 	for el.HashedKey != 0 {
 		if el.Key == key {
 			hm.Elements[i%hm.Max] = Element[K, V]{hash, key, value}
-			return
+			return nil
 		}
 
 		i++
@@ -92,4 +106,5 @@ func (hm *HMap[K, V]) Set(key K, value V) {
 	if float64(hm.Len)/float64(hm.Max) > hm.Threshold {
 		hm.resize()
 	}
+	return nil
 }
