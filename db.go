@@ -157,7 +157,7 @@ func (db *Map[K, V]) Set(key K, value V) error {
 			return err
 		}
 		if ok {
-			db.hm.Elements[n].Value = value
+			db.hm.Elements[n%db.hm.Max].Value = value
 			return nil
 		}
 
