@@ -88,6 +88,9 @@ func Initialize[K comparable, V any](name string, path string, hfn func(K) uint6
 			return nil, err
 		}
 
+		hm.hashFn = hfn
+		hm.resizer = DefaultInterpolate()
+
 		db.hm = hm
 	}
 
