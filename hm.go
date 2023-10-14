@@ -2,6 +2,7 @@ package partdb
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 )
 
@@ -56,7 +57,6 @@ func (hm *HMap[K, V]) resize() {
 }
 
 func (hm *HMap[K, V]) Get(key K) (el Element[K, V], ok bool) {
-	fmt.Println(key)
 	i := hm.hashFn(key)
 	el = hm.Elements[i%hm.Max]
 	for el.HashedKey != 0 {
@@ -71,7 +71,22 @@ func (hm *HMap[K, V]) Get(key K) (el Element[K, V], ok bool) {
 	return Element[K, V]{}, false
 }
 
-func (hm *HMap[K, V]) Set(key K, value V) {
+func (hm *HMap[K, V]) get(key K) (el Element[K, V], ok bool, n uint64) {
+	i := hm.hashFn(key)
+	el = hm.Elements[i%hm.Max]
+	for el.HashedKey != 0 {
+		if el.Key == key {
+			return el, true, i
+		}
+
+		i++
+		el = hm.Elements[i%hm.Max]
+	}
+
+	return Element[K, V]{}, false, 0
+}
+
+func (hm *HMap[K, V]) Set(key K, value V) error {
 	hm.mutex.Lock()
 	defer hm.mutex.Unlock()
 
@@ -81,7 +96,7 @@ func (hm *HMap[K, V]) Set(key K, value V) {
 	for el.HashedKey != 0 {
 		if el.Key == key {
 			hm.Elements[i%hm.Max] = Element[K, V]{hash, key, value}
-			return
+			return nil
 		}
 
 		i++
@@ -92,4 +107,65 @@ func (hm *HMap[K, V]) Set(key K, value V) {
 	if float64(hm.Len)/float64(hm.Max) > hm.Threshold {
 		hm.resize()
 	}
+	return nil
+}
+
+type PersistMap[K comparable, V any] struct {
+	hm *HMap[K, V]
+	fm *FileManager[K, V]
+}
+
+func NewPersist[K comparable, V any](hfn func(K) uint64, maxSize uint64, persistPath string) (*PersistMap[K, V], error) {
+	if persistPath == "" {
+		return nil, fmt.Errorf("path can not be empty")
+	}
+
+	hm, err := New[K, V](hfn, maxSize)
+	if err != nil {
+		return nil, err
+	}
+
+	pm := &PersistMap[K, V]{
+		hm: hm,
+		fm: OpenFileManager[K, V](persistPath),
+	}
+
+	return pm, nil
+}
+
+func (p *PersistMap[K, V]) Set(key K, value V) error {
+	if el, n, ok, diff := p.diff(key, value); diff {
+		if !ok {
+			el = Element[K, V]{
+				HashedKey: p.hm.hashFn(key),
+				Key:       key,
+				Value:     value,
+			}
+		}
+		if err := p.fm.Append(el); err != nil {
+			return err
+		}
+		if ok {
+			p.hm.Elements[n].Value = value
+			return nil
+		}
+
+		return p.hm.Set(key, value)
+	}
+	return fmt.Errorf("key not found")
+}
+
+func (p *PersistMap[K, V]) diff(key K, value V) (el Element[K, V], n uint64, ok bool, diff bool) {
+	el, ok, n = p.hm.get(key)
+	if ok {
+		if reflect.DeepEqual(el.Value, value) {
+			fmt.Println("Deeply equal")
+			return el, 0, ok, false
+		}
+
+		fmt.Println("Not deeply equal")
+		return el, n, ok, true
+	}
+
+	return el, 0, ok, true
 }
