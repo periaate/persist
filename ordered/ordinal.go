@@ -1,14 +1,11 @@
-package partdb
+package ordered
 
 import (
 	"math"
 )
 
-// by using days as the smallest value instead of unix time
-// we can modify counting sort to work as "range sort"
-// allowing for range selections to occur very easily on results
-// as the sorting will only be done on elements which are in the
-// correct range of time
+// by using days as the smallest value instead of unix time we can modify counting sort to work as "range sort".
+// These ranges allow us to define ranges which will be the only values which are sorted.
 
 type Orderable[K comparable, V any] struct {
 	Lex string
@@ -38,6 +35,7 @@ func (o OrdinalElements[K, V]) Order(from, to uint16, origin *K) OrdinalElements
 		k = math.MaxUint16
 	}
 	count := make([]int, k+1)
+
 	var c int
 
 	if r {

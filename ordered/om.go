@@ -1,4 +1,4 @@
-package unordered
+package ordered
 
 import (
 	"fmt"
@@ -7,14 +7,8 @@ import (
 	"github.com/periaate/partdb"
 )
 
-type Element[K comparable, V any] struct {
-	HashedKey uint64
-	Key       K
-	Value     V
-}
-
-type HMap[K comparable, V any] struct {
-	Elements []Element[K, V]
+type OrdinalMap[K comparable, V any] struct {
+	Elements OrdinalElements[K, V]
 	hashFn   func(K) uint64
 	resizer  func(uint64) uint64
 
@@ -25,8 +19,8 @@ type HMap[K comparable, V any] struct {
 	mutex sync.RWMutex
 }
 
-func New[K comparable, V any](hfn func(K) uint64, maxSize uint64) (*HMap[K, V], error) {
-	hm := &HMap[K, V]{}
+func New[K comparable, V any](hfn func(K) uint64, maxSize uint64) (*OrdinalMap[K, V], error) {
+	hm := &OrdinalMap[K, V]{}
 	if maxSize < 8 {
 		maxSize = 8
 	}
@@ -37,7 +31,7 @@ func New[K comparable, V any](hfn func(K) uint64, maxSize uint64) (*HMap[K, V], 
 	}
 	hm.hashFn = hfn
 
-	hm.Elements = make([]Element[K, V], hm.Max)
+	hm.Elements = make([]Orderable[K, V], hm.Max)
 
 	hm.resizer = partdb.DefaultInterpolate()
 	hm.Threshold = 0.6
@@ -45,10 +39,10 @@ func New[K comparable, V any](hfn func(K) uint64, maxSize uint64) (*HMap[K, V], 
 	return hm, nil
 }
 
-func (hm *HMap[K, V]) resize() {
+func (hm *OrdinalMap[K, V]) resize() {
 	oldEls := hm.Elements
 	hm.Max = hm.Max * hm.resizer(hm.Max)
-	hm.Elements = make([]Element[K, V], hm.Max)
+	hm.Elements = make([]Orderable[K, V], hm.Max)
 
 	for _, oldEl := range oldEls {
 		if oldEl.HashedKey != 0 {
@@ -57,9 +51,8 @@ func (hm *HMap[K, V]) resize() {
 	}
 }
 
-func (hm *HMap[K, V]) Get(key K) (el Element[K, V], ok bool) {
-	hm.mutex.RLock()
-	defer hm.mutex.RUnlock()
+func (hm *OrdinalMap[K, V]) Get(key K) (el Orderable[K, V], ok bool) {
+	// Race
 	i := hm.hashFn(key)
 	el = hm.Elements[i%hm.Max]
 	for el.HashedKey != 0 {
@@ -71,11 +64,10 @@ func (hm *HMap[K, V]) Get(key K) (el Element[K, V], ok bool) {
 		el = hm.Elements[i%hm.Max]
 	}
 
-	return Element[K, V]{}, false
+	return Orderable[K, V]{}, false
 }
 
-// get is a function used locally to get during locks. This can lead to races or memory safety issues.
-func (hm *HMap[K, V]) get(key K) (el Element[K, V], ok bool, n uint64) {
+func (hm *OrdinalMap[K, V]) get(key K) (el Orderable[K, V], ok bool, n uint64) {
 	// Race
 	i := hm.hashFn(key)
 	el = hm.Elements[i%hm.Max]
@@ -88,10 +80,10 @@ func (hm *HMap[K, V]) get(key K) (el Element[K, V], ok bool, n uint64) {
 		el = hm.Elements[i%hm.Max]
 	}
 
-	return Element[K, V]{}, false, 0
+	return Orderable[K, V]{}, false, 0
 }
 
-func (hm *HMap[K, V]) Set(key K, value V) error {
+func (hm *OrdinalMap[K, V]) Set(key K, value V) error {
 	hm.mutex.Lock()
 	defer hm.mutex.Unlock()
 
@@ -100,7 +92,11 @@ func (hm *HMap[K, V]) Set(key K, value V) error {
 	el := hm.Elements[i%hm.Max]
 	for el.HashedKey != 0 {
 		if el.Key == key {
-			hm.Elements[i%hm.Max] = Element[K, V]{hash, key, value}
+			hm.Elements[i%hm.Max] = Orderable[K, V]{
+				HashedKey: hash,
+				Key:       key,
+				Value:     value,
+			}
 			return nil
 		}
 
@@ -108,8 +104,11 @@ func (hm *HMap[K, V]) Set(key K, value V) error {
 		el = hm.Elements[i%hm.Max]
 	}
 
-	hm.Len++
-	hm.Elements[i%hm.Max] = Element[K, V]{hash, key, value}
+	hm.Elements[i%hm.Max] = Orderable[K, V]{
+		HashedKey: hash,
+		Key:       key,
+		Value:     value,
+	}
 	if float64(hm.Len)/float64(hm.Max) > hm.Threshold {
 		hm.resize()
 	}

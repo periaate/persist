@@ -1,33 +1,28 @@
-package partdb
+package unordered
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/periaate/partdb"
 )
 
 // CleanupTestFiles removes all .gob and .lgob files from the current directory
 func CleanupTestFiles() {
-	p := "./"
-	files, err := os.ReadDir(p)
+	fp := filepath.Join("test", "testing")
+	err := os.RemoveAll(fp)
 	if err != nil {
 		panic(err)
-	}
-
-	for _, file := range files {
-		ext := filepath.Ext(file.Name())
-		if ext == ".gob" || ext == ".lgob" {
-			os.Remove(filepath.Join(p, file.Name()))
-		}
 	}
 }
 
 func TestLoadPersistMap(t *testing.T) {
-	t.Cleanup(CleanupTestFiles)
 	name := "testing"
-	persistPath := "testWal"
+	persistPath := "test"
 
-	originalPM, err := Initialize[uint64, string](name, persistPath, Hash_u64())
+	originalPM, err := Initialize[uint64, string](name, persistPath, partdb.NewHashU64())
 	if err != nil {
 		t.Fatalf("Failed to create original PersistMap: %v", err)
 	}
@@ -35,9 +30,11 @@ func TestLoadPersistMap(t *testing.T) {
 	originalPM.Set(1, "one")
 	originalPM.Set(2, "two")
 	originalPM.Set(3, "three")
-	originalPM.Close()
+	if err = originalPM.Close(); err != nil {
+		t.Fatal(err)
+	}
 
-	loadedPM, err := Initialize[uint64, string](name, persistPath, Hash_u64())
+	loadedPM, err := Initialize[uint64, string](name, persistPath, partdb.NewHashU64())
 	if err != nil {
 		t.Fatalf("Failed to create original PersistMap: %v", err)
 	}
@@ -57,5 +54,42 @@ func TestLoadPersistMap(t *testing.T) {
 			}
 		}
 	}
-	loadedPM.Close()
+	if err = loadedPM.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+const (
+	times uint64 = 10_000
+)
+
+// TestNew tests the New function
+func TestNew(t *testing.T) {
+	defer t.Cleanup(CleanupTestFiles)
+	_, err := New[uint64, string](partdb.NewHashU64(), 32)
+	if err != nil {
+		t.Fatalf("Failed to create HMap: %v", err)
+	}
+}
+
+// TestGetSet tests the Get and Set methods
+func TestGetSet(t *testing.T) {
+	defer t.Cleanup(CleanupTestFiles)
+	hm, _ := New[uint64, string](partdb.NewHashU64(), 32)
+
+	for i := uint64(0); i < times; i++ {
+		err := hm.Set(i, fmt.Sprint(i))
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	for i := uint64(0); i < times; i++ {
+		if v, ok := hm.Get(i); !ok {
+			t.Error(fmt.Errorf("not found"))
+		} else if v.Value != fmt.Sprint(i) {
+			t.Error(fmt.Errorf("not found"))
+		}
+	}
 }

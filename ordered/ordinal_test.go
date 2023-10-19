@@ -1,4 +1,4 @@
-package partdb
+package ordered
 
 import (
 	"reflect"

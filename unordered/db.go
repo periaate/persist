@@ -1,12 +1,14 @@
-package partdb
+package unordered
 
 import (
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"time"
+
+	"github.com/periaate/partdb"
 )
 
 type Map[K comparable, V any] struct {
@@ -22,8 +24,9 @@ type Map[K comparable, V any] struct {
 }
 
 func (db *Map[K, V]) Close() error {
-	defer db.file.Close()
-	return db.Dump()
+	err := db.Dump()
+	err2 := db.file.Close()
+	return errors.Join(err, err2)
 }
 
 func getLogName(prefix string, ext string) string {
@@ -41,6 +44,9 @@ func (db *Map[K, V]) Dump() error {
 	defer f.Close()
 
 	enc := gob.NewEncoder(f)
+	if err != nil {
+		return err
+	}
 	return enc.Encode(db.hm)
 }
 
@@ -50,7 +56,7 @@ func (db *Map[K, V]) Append(el Element[K, V]) error {
 
 func Initialize[K comparable, V any](name string, path string, hfn func(K) uint64) (*Map[K, V], error) {
 
-	err := EnsureDir(path)
+	err := partdb.EnsureDir(path)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +64,7 @@ func Initialize[K comparable, V any](name string, path string, hfn func(K) uint6
 	folderPath := filepath.Join(path, name)
 	filePath := filepath.Join(folderPath, fmt.Sprint(name, ".gob"))
 
-	err = EnsureDir(folderPath)
+	err = partdb.EnsureDir(folderPath)
 	if err != nil {
 		return nil, err
 	}
@@ -77,25 +83,21 @@ func Initialize[K comparable, V any](name string, path string, hfn func(K) uint6
 
 	_, err = os.Stat(filePath)
 	if !os.IsNotExist(err) {
-		hm, _ := New[K, V](hfn, 8)
 		file, err := os.Open(filePath)
 		if err != nil {
 			return nil, err
 		}
+		defer file.Close()
 		decoder := gob.NewDecoder(file)
-		err = decoder.Decode(hm)
+		err = decoder.Decode(db.hm)
 		if err != nil {
 			return nil, err
 		}
 
-		hm.hashFn = hfn
-		hm.resizer = DefaultInterpolate()
-
-		db.hm = hm
 	}
 
 	tempPath := filepath.Join(folderPath, "temp")
-	err = EnsureDir(tempPath)
+	err = partdb.EnsureDir(tempPath)
 	if err != nil {
 		return nil, err
 	}
@@ -145,39 +147,13 @@ func (db *Map[K, V]) rotate(check bool) error {
 func (db *Map[K, V]) Get(key K) (el Element[K, V], ok bool) { return db.hm.Get(key) }
 
 func (db *Map[K, V]) Set(key K, value V) error {
-	if el, n, ok, diff := db.diff(key, value); diff {
-		if !ok {
-			el = Element[K, V]{
-				HashedKey: db.hm.hashFn(key),
-				Key:       key,
-				Value:     value,
-			}
-		}
-		if err := db.Append(el); err != nil {
-			return err
-		}
-		if ok {
-			db.hm.Elements[n%db.hm.Max].Value = value
-			return nil
-		}
-
-		return db.hm.Set(key, value)
+	el := Element[K, V]{
+		HashedKey: db.hm.hashFn(key),
+		Key:       key,
+		Value:     value,
 	}
-	return fmt.Errorf("key not found")
-}
-
-func (db *Map[K, V]) diff(key K, value V) (el Element[K, V], n uint64, ok bool, diff bool) {
-	// Race
-	el, ok, n = db.hm.get(key)
-	if ok {
-		if reflect.DeepEqual(el.Value, value) {
-			fmt.Println("Deeply equal")
-			return el, 0, ok, false
-		}
-
-		fmt.Println("Not deeply equal")
-		return el, n, ok, true
+	if err := db.Append(el); err != nil {
+		return err
 	}
-
-	return el, 0, ok, true
+	return db.hm.Set(key, value)
 }
