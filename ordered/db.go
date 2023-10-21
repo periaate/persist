@@ -1,20 +1,20 @@
-package unordered
+package ordered
 
 import (
 	"github.com/periaate/partdb/persist"
 )
 
 type Map[K comparable, V any] struct {
-	persist.Wrap[HMap[K, V]]
+	persist.Wrap[OrdinalMap[K, V]]
 }
 
 func Initialize[K comparable, V any](src, name string, hfn func(K) uint64, size uint64) (db *Map[K, V], err error) {
-	hm, err := New[K, V](hfn, size)
+	om, err := New[K, V](hfn, size)
 	if err != nil {
 		return nil, err
 	}
 
-	wr, err := persist.New(src, name, hm)
+	wr, err := persist.New(src, name, om)
 	if err != nil {
 		return nil, err
 	}
@@ -24,10 +24,10 @@ func Initialize[K comparable, V any](src, name string, hfn func(K) uint64, size 
 	return db, nil
 }
 
-func (db *Map[K, V]) Get(key K) (el Element[K, V], ok bool) { return db.Obj.Get(key) }
+func (db *Map[K, V]) Get(key K) (el Orderable[K, V], ok bool) { return db.Obj.Get(key) }
 
 func (db *Map[K, V]) Set(key K, value V) error {
-	el := Element[K, V]{
+	el := Orderable[K, V]{
 		HashedKey: db.Obj.hashFn(key),
 		Key:       key,
 		Value:     value,
