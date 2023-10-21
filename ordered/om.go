@@ -52,7 +52,8 @@ func (hm *OrdinalMap[K, V]) resize() {
 }
 
 func (hm *OrdinalMap[K, V]) Get(key K) (el Orderable[K, V], ok bool) {
-	// Race
+	hm.mutex.RLock()
+	defer hm.mutex.RUnlock()
 	i := hm.hashFn(key)
 	el = hm.Elements[i%hm.Max]
 	for el.HashedKey != 0 {
@@ -67,22 +68,6 @@ func (hm *OrdinalMap[K, V]) Get(key K) (el Orderable[K, V], ok bool) {
 	return Orderable[K, V]{}, false
 }
 
-func (hm *OrdinalMap[K, V]) get(key K) (el Orderable[K, V], ok bool, n uint64) {
-	// Race
-	i := hm.hashFn(key)
-	el = hm.Elements[i%hm.Max]
-	for el.HashedKey != 0 {
-		if el.Key == key {
-			return el, true, i
-		}
-
-		i++
-		el = hm.Elements[i%hm.Max]
-	}
-
-	return Orderable[K, V]{}, false, 0
-}
-
 func (hm *OrdinalMap[K, V]) Set(key K, value V) error {
 	hm.mutex.Lock()
 	defer hm.mutex.Unlock()
@@ -92,11 +77,7 @@ func (hm *OrdinalMap[K, V]) Set(key K, value V) error {
 	el := hm.Elements[i%hm.Max]
 	for el.HashedKey != 0 {
 		if el.Key == key {
-			hm.Elements[i%hm.Max] = Orderable[K, V]{
-				HashedKey: hash,
-				Key:       key,
-				Value:     value,
-			}
+			hm.Elements[i%hm.Max] = Orderable[K, V]{HashedKey: hash, Key: key, Value: value}
 			return nil
 		}
 
@@ -104,11 +85,8 @@ func (hm *OrdinalMap[K, V]) Set(key K, value V) error {
 		el = hm.Elements[i%hm.Max]
 	}
 
-	hm.Elements[i%hm.Max] = Orderable[K, V]{
-		HashedKey: hash,
-		Key:       key,
-		Value:     value,
-	}
+	hm.Len++
+	hm.Elements[i%hm.Max] = Orderable[K, V]{HashedKey: hash, Key: key, Value: value}
 	if float64(hm.Len)/float64(hm.Max) > hm.Threshold {
 		hm.resize()
 	}
