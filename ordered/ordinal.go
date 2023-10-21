@@ -18,6 +18,7 @@ type Orderable[K comparable, V any] struct {
 
 type OrdinalElements[K comparable, V any] []Orderable[K, V]
 
+// This doesn't work
 func (o OrdinalElements[K, V]) Len() int           { return len(o) }
 func (o OrdinalElements[K, V]) Less(i, j int) bool { return o[i].Lex < o[j].Lex }
 func (o OrdinalElements[K, V]) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }

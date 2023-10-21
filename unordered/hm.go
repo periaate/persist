@@ -74,23 +74,6 @@ func (hm *HMap[K, V]) Get(key K) (el Element[K, V], ok bool) {
 	return Element[K, V]{}, false
 }
 
-// get is a function used locally to get during locks. This can lead to races or memory safety issues.
-func (hm *HMap[K, V]) get(key K) (el Element[K, V], ok bool, n uint64) {
-	// Race
-	i := hm.hashFn(key)
-	el = hm.Elements[i%hm.Max]
-	for el.HashedKey != 0 {
-		if el.Key == key {
-			return el, true, i
-		}
-
-		i++
-		el = hm.Elements[i%hm.Max]
-	}
-
-	return Element[K, V]{}, false, 0
-}
-
 func (hm *HMap[K, V]) Set(key K, value V) error {
 	hm.mutex.Lock()
 	defer hm.mutex.Unlock()
