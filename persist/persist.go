@@ -2,7 +2,6 @@ package persist
 
 import (
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,9 +23,7 @@ type Wrap[T any] struct {
 }
 
 func (wr *Wrap[T]) Close() error {
-	err := wr.Dump()
-	err2 := wr.File.Close()
-	return errors.Join(err, err2)
+	return wr.Dump()
 }
 
 func getLogName(prefix string, ext string) string {
@@ -48,7 +45,8 @@ func (wr *Wrap[T]) Dump() error {
 }
 
 func (wr *Wrap[T]) Append(el any) error {
-	return wr.LogEncoder.Encode(el)
+	return nil
+	//return wr.LogEncoder.Encode(el)
 }
 
 func New[T any](src, name string, t *T) (wr *Wrap[T], err error) {
@@ -97,22 +95,22 @@ func New[T any](src, name string, t *T) (wr *Wrap[T], err error) {
 		GobPath:  gobPath,
 		TempPath: tempPath,
 	}
-	err = wr.Rotate(false)
-	if err != nil {
-		return nil, err
-	}
+	//err = wr.Rotate(false)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	return wr, nil
 }
 
 func (wr *Wrap[T]) Rotate(check bool) error {
-	if wr.File != nil {
-		if err := wr.File.Close(); err != nil {
-			return err
-		}
-	}
-	logName := getLogName(wr.Name, ".lgob")
-	logPath := filepath.Join(wr.TempPath, logName)
+	//if wr.File != nil {
+	//	if err := wr.File.Close(); err != nil {
+	//		return err
+	//	}
+	//}
+	//logName := getLogName(wr.Name, ".lgob")
+	//logPath := filepath.Join(wr.TempPath, logName)
 
 	if check {
 		checkName := getLogName(wr.TempPath, ".gob")
@@ -128,13 +126,13 @@ func (wr *Wrap[T]) Rotate(check bool) error {
 		encoder.Encode(wr.Obj)
 	}
 
-	logFile, err := os.Create(logPath)
-	if err != nil {
-		return err
-	}
+	//logFile, err := os.Create(logPath)
+	//if err != nil {
+	//	return err
+	//}
 
-	wr.LogEncoder = gob.NewEncoder(logFile)
-	wr.File.Close()
-	wr.File = logFile
+	//wr.LogEncoder = gob.NewEncoder(logFile)
+	//wr.File.Close()
+	//wr.File = logFile
 	return nil
 }
