@@ -1,7 +1,7 @@
 package ordered
 
 import (
-	"github.com/periaate/partdb/persist"
+	"github.com/periaate/persist/persist"
 )
 
 type Map[K comparable, V any] struct {

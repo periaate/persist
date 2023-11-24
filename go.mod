@@ -1,4 +1,4 @@
-module github.com/periaate/partdb
+module github.com/periaate/persist
 
 go 1.21.0
 

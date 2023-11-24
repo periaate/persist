@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/periaate/partdb"
+	"github.com/periaate/persist"
 )
 
 const (
@@ -13,7 +13,7 @@ const (
 
 // TestNew tests the New function
 func TestNew(t *testing.T) {
-	_, err := New[uint64, string](partdb.NewHashU64(), 32)
+	_, err := New[uint64, string](persist.NewHashU64(), 32)
 	if err != nil {
 		t.Fatalf("Failed to create HMap: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestNew(t *testing.T) {
 
 // TestGetSet tests the Get and Set methods
 func TestGetSet(t *testing.T) {
-	hm, _ := New[uint64, string](partdb.NewHashU64(), 32)
+	hm, _ := New[uint64, string](persist.NewHashU64(), 32)
 
 	for i := uint64(0); i < times; i++ {
 		err := hm.Set(i, fmt.Sprint(i))

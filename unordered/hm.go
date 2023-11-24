@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/periaate/partdb"
+	"github.com/periaate/persist"
 )
 
 type Element[K comparable, V any] struct {
@@ -39,7 +39,7 @@ func New[K comparable, V any](hfn func(K) uint64, maxSize uint64) (*HMap[K, V], 
 
 	hm.Elements = make([]Element[K, V], hm.Max)
 
-	hm.resizer = partdb.DefaultInterpolate()
+	hm.resizer = persist.DefaultInterpolate()
 	hm.Threshold = 0.6
 
 	return hm, nil

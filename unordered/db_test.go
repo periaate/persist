@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/periaate/partdb"
+	"github.com/periaate/persist"
 )
 
 // CleanupTestFiles removes all .gob and .lgob files from the current directory
@@ -22,7 +22,7 @@ func TestLoadPersistMap(t *testing.T) {
 	name := "testing"
 	persistPath := "test"
 
-	originalPM, err := Initialize[uint64, string](persistPath, name, partdb.NewHashU64(), 32)
+	originalPM, err := Initialize[uint64, string](persistPath, name, persist.NewHashU64(), 32)
 	if err != nil {
 		t.Fatalf("Failed to create original PersistMap: %v", err)
 	}
@@ -37,7 +37,7 @@ func TestLoadPersistMap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	loadedPM, err := Initialize[uint64, string](persistPath, name, partdb.NewHashU64(), 32)
+	loadedPM, err := Initialize[uint64, string](persistPath, name, persist.NewHashU64(), 32)
 	if err != nil {
 		t.Fatalf("Failed to create original PersistMap: %v", err)
 	}

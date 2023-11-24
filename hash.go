@@ -1,4 +1,4 @@
-package partdb
+package persist
 
 import (
 	"github.com/OneOfOne/xxhash"

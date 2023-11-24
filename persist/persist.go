@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/periaate/partdb"
+	"github.com/periaate/persist"
 )
 
 type Wrap[T any] struct {
@@ -54,7 +54,7 @@ func New[T any](src, name string, t *T) (wr *Wrap[T], err error) {
 		return nil, fmt.Errorf("t can not be nil")
 	}
 
-	err = partdb.EnsureDir(src)
+	err = persist.EnsureDir(src)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func New[T any](src, name string, t *T) (wr *Wrap[T], err error) {
 	mainPath := filepath.Join(src, name)
 	gobPath := filepath.Join(mainPath, fmt.Sprint(name, ".gob"))
 
-	err = partdb.EnsureDir(mainPath)
+	err = persist.EnsureDir(mainPath)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func New[T any](src, name string, t *T) (wr *Wrap[T], err error) {
 	}
 
 	tempPath := filepath.Join(mainPath, "temp")
-	err = partdb.EnsureDir(tempPath)
+	err = persist.EnsureDir(tempPath)
 	if err != nil {
 		return nil, err
 	}
